@@ -54,6 +54,9 @@ import           Data.Aeson
                      , parseJSON
                      , toJSON
                      )
+#if MIN_VERSION_aeson(1, 0, 0)
+import           Data.Aeson.Types (FromJSONKey, ToJSONKey)
+#endif
 
 
 -- base ----------------------------------------------------------------------
@@ -285,6 +288,18 @@ instance Functor f => Monad (Tree f s) where
 
 
 ------------------------------------------------------------------------------
+instance (FromJSON s, FromJSON a, FromJSON (f (Tree f s a))) =>
+    FromJSON (Tree f s a)
+  where
+    parseJSON (Object o) = msum
+        [ Node <$> o .: "value" <*> o .: "children"
+        , Leaf <$> o .: "value"
+        ]
+    parseJSON _ = empty
+    {-# INLINE parseJSON #-}
+
+
+------------------------------------------------------------------------------
 instance (ToJSON s, ToJSON a, ToJSON (f (Tree f s a))) =>
     ToJSON (Tree f s a)
   where
@@ -298,18 +313,16 @@ instance (ToJSON s, ToJSON a, ToJSON (f (Tree f s a))) =>
     {-# INLINE toJSON #-}
 
 
+#if MIN_VERSION_aeson(1, 0, 0)
 ------------------------------------------------------------------------------
-instance (FromJSON s, FromJSON a, FromJSON (f (Tree f s a))) =>
-    FromJSON (Tree f s a)
-  where
-    parseJSON (Object o) = msum
-        [ Node <$> o .: "value" <*> o .: "children"
-        , Leaf <$> o .: "value"
-        ]
-    parseJSON _ = empty
-    {-# INLINE parseJSON #-}
+instance FromJSON (Tree f s a) => FromJSONKey (Tree f s a)
 
 
+------------------------------------------------------------------------------
+instance ToJSON (Tree f s a) => ToJSONKey (Tree f s a)
+
+
+#endif
 ------------------------------------------------------------------------------
 instance Eq1 f => Eq2 (Tree f) where
     liftEq2 _ eqa (Leaf a) (Leaf b) = eqa a b
@@ -566,14 +579,6 @@ instance Alternative f => Monoid (Forest f s a) where
 
 
 ------------------------------------------------------------------------------
-instance (ToJSON s, ToJSON a, ToJSON (f (Tree f s a))) =>
-    ToJSON (Forest f s a)
-  where
-    toJSON (Forest ts) = toJSON ts
-    {-# INLINE toJSON #-}
-
-
-------------------------------------------------------------------------------
 instance (FromJSON s, FromJSON a, FromJSON (f (Tree f s a))) =>
     FromJSON (Forest f s a)
   where
@@ -581,6 +586,24 @@ instance (FromJSON s, FromJSON a, FromJSON (f (Tree f s a))) =>
     {-# INLINE parseJSON #-}
 
 
+------------------------------------------------------------------------------
+instance (ToJSON s, ToJSON a, ToJSON (f (Tree f s a))) =>
+    ToJSON (Forest f s a)
+  where
+    toJSON (Forest ts) = toJSON ts
+    {-# INLINE toJSON #-}
+
+
+#if MIN_VERSION_aeson(1, 0, 0)
+------------------------------------------------------------------------------
+instance FromJSON (Forest f s a) => FromJSONKey (Forest f s a)
+
+
+------------------------------------------------------------------------------
+instance ToJSON (Forest f s a) => ToJSONKey (Forest f s a)
+
+
+#endif
 ------------------------------------------------------------------------------
 instance Eq1 f => Eq2 (Forest f) where
     liftEq2 eqs eqa (Forest ts) (Forest tt) = liftEq (liftEq2 eqs eqa) ts tt
