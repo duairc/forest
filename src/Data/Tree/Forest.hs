@@ -30,7 +30,7 @@ module Data.Tree.Forest
     , _Leaf
     , _Node
     , _Forest
-    , treeAsFree
+    , free
 
     -- * Higher order traversals
     -- ** Trees
@@ -134,8 +134,16 @@ import           Prelude hiding (foldr)
 import           Prelude hiding (foldr1)
 
 
+-- comonad -------------------------------------------------------------------
+import           Control.Comonad.Trans.Env (EnvT (EnvT))
+
+
 -- deepseq -------------------------------------------------------------------
 import           Control.DeepSeq (NFData, rnf)
+
+
+-- free ----------------------------------------------------------------------
+import           Control.Monad.Free (Free (Free, Pure))
 
 
 -- hashable ------------------------------------------------------------------
@@ -144,14 +152,6 @@ import           Data.Hashable (Hashable, hashWithSalt)
 
 -- profunctors ---------------------------------------------------------------
 import           Data.Profunctor (Choice, Profunctor, dimap, right')
-
-
--- free ----------------------------------------------------------------------
-import           Control.Monad.Free (Free(..))
-
-
--- comonad-transformers ------------------------------------------------------
-import           Control.Comonad.Trans.Env (EnvT(..))
 
 
 -- semigroupoids -------------------------------------------------------------
@@ -212,18 +212,17 @@ _Node = dimap from (either pure (fmap to)) . right'
 
 ------------------------------------------------------------------------------
 -- | This is an @Functor g => Iso' (Tree g s a) (Free (EnvT s g) a)@
-treeAsFree :: (Profunctor p, Functor f, Functor g)
+free :: (Profunctor p, Functor f, Functor g)
     => p (Free (EnvT s g) a) (f (Free (EnvT s g) a))
     -> p (Tree g s a) (f (Tree g s a))
-treeAsFree = dimap to (fmap from)
+free = dimap to (fmap from)
   where
-    to :: Functor g => Tree g s a -> Free (EnvT s g) a
-    to (Leaf a) = Pure a
-    to (Node s (Forest gTree)) = Free (EnvT s (fmap to gTree))
-
-    from :: Functor g => Free (EnvT s g) a -> Tree g s a
     from (Pure a) = Leaf a
-    from (Free (EnvT s gTree)) = Node s (Forest (fmap from gTree))
+    from (Free (EnvT s ts)) = Node s (Forest (fmap from ts))
+    to (Leaf a) = Pure a
+    to (Node s (Forest ts)) = Free (EnvT s (fmap to ts))
+{-# INLINE free #-}
+
 
 ------------------------------------------------------------------------------
 instance (NFData s, NFData a, NFData (f (Tree f s a))) =>

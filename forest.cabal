@@ -31,8 +31,7 @@ Library
     free >= 4.12 && < 5,
     hashable >= 1.2 && < 2,
     profunctors >= 3.2 && < 6,
-    semigroupoids >= 1.0 && < 6,
-    base >= 4 && < 5
+    semigroupoids >= 1.0 && < 6
 
   if impl(ghc < 8)
     build-depends:
