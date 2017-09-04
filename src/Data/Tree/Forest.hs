@@ -74,7 +74,7 @@ import           Control.Monad
 import           Control.Monad.Fail (MonadFail)
 import qualified Control.Monad.Fail as F (fail)
 #endif
-import           Data.Bifoldable (Bifoldable, bifoldr)
+import           Data.Bifoldable (Bifoldable, bifoldl', bifoldr)
 import           Data.Bifunctor (Bifunctor, bimap)
 import           Data.Bitraversable (Bitraversable, bitraverse)
 #if __GLASGOW_HASKELL__ < 710
@@ -130,6 +130,7 @@ import           GHC.Generics
 #if __GLASGOW_HASKELL__ < 710
 import           Prelude hiding (foldr)
 #endif
+import           Prelude hiding (foldr1)
 
 
 -- deepseq -------------------------------------------------------------------
@@ -149,6 +150,10 @@ import           Data.Functor.Alt (Alt, (<!>))
 import           Data.Functor.Apply (Apply, (<.>))
 import           Data.Functor.Bind (Bind, (>>-), join)
 import           Data.Functor.Plus (Plus, zero)
+import           Data.Semigroup.Bifoldable (Bifoldable1, bifoldMap1)
+import           Data.Semigroup.Bitraversable (Bitraversable1, bitraverse1)
+import           Data.Semigroup.Foldable (Foldable1, foldMap1)
+import           Data.Semigroup.Traversable (Traversable1, traverse1)
 
 
 ------------------------------------------------------------------------------
@@ -229,10 +234,25 @@ instance Foldable f => Bifoldable (Tree f) where
 
 
 ------------------------------------------------------------------------------
+instance Foldable f => Bifoldable1 (Tree f) where
+    bifoldMap1 _ g (Leaf a) = g a
+    bifoldMap1 f g (Node s ts) =
+        bifoldl' ((. f) . (<>)) ((. g) . (<>)) (f s) ts
+    {-# INLINE bifoldMap1 #-}
+
+
+------------------------------------------------------------------------------
 instance Traversable f => Bitraversable (Tree f) where
     bitraverse _ g (Leaf a) = Leaf <$> g a
     bitraverse f g (Node s ts) = Node <$> f s <*> bitraverse f g ts
     {-# INLINE bitraverse #-}
+
+
+------------------------------------------------------------------------------
+instance Traversable1 f => Bitraversable1 (Tree f) where
+    bitraverse1 _ g (Leaf a) = Leaf <$> g a
+    bitraverse1 f g (Node s ts) = Node <$> f s <.> bitraverse1 f g ts
+    {-# INLINE bitraverse1 #-}
 
 
 ------------------------------------------------------------------------------
@@ -250,10 +270,24 @@ instance Foldable f => Foldable (Tree f s) where
 
 
 ------------------------------------------------------------------------------
+instance Foldable1 f => Foldable1 (Tree f s) where
+    foldMap1 f (Leaf a) = f a
+    foldMap1 f (Node _ ts) = foldMap1 f ts
+    {-# INLINE foldMap1 #-}
+
+
+------------------------------------------------------------------------------
 instance Traversable f => Traversable (Tree f s) where
     traverse f (Leaf a) = Leaf <$> f a
     traverse f (Node s ts) = Node s <$> traverse f ts
     {-# INLINE traverse #-}
+
+
+------------------------------------------------------------------------------
+instance Traversable1 f => Traversable1 (Tree f s) where
+    traverse1 f (Leaf a) = Leaf <$> f a
+    traverse1 f (Node s ts) = Node s <$> traverse1 f ts
+    {-# INLINE traverse1 #-}
 
 
 ------------------------------------------------------------------------------
@@ -470,9 +504,19 @@ instance Foldable f => Bifoldable (Forest f) where
 
 
 ------------------------------------------------------------------------------
+instance Foldable1 f => Bifoldable1 (Forest f) where
+    bifoldMap1 f g (Forest ts) = foldMap1 (bifoldMap1 f g) ts
+
+
+------------------------------------------------------------------------------
 instance Traversable f => Bitraversable (Forest f) where
     bitraverse f g (Forest ts) = Forest <$> traverse (bitraverse f g) ts
     {-# INLINE bitraverse #-}
+
+
+------------------------------------------------------------------------------
+instance Traversable1 f => Bitraversable1 (Forest f) where
+    bitraverse1 f g (Forest ts) = Forest <$> traverse1 (bitraverse1 f g) ts
 
 
 ------------------------------------------------------------------------------
@@ -488,9 +532,21 @@ instance Foldable f => Foldable (Forest f s) where
 
 
 ------------------------------------------------------------------------------
+instance Foldable1 f => Foldable1 (Forest f s) where
+    foldMap1 f (Forest ts) = foldMap1 (foldMap1 f) ts
+    {-# INLINE foldMap1 #-}
+
+
+------------------------------------------------------------------------------
 instance Traversable f => Traversable (Forest f s) where
     traverse f (Forest ts) = Forest <$> traverse (traverse f) ts
     {-# INLINE traverse #-}
+
+
+------------------------------------------------------------------------------
+instance Traversable1 f => Traversable1 (Forest f s) where
+    traverse1 f (Forest ts) = Forest <$> traverse1 (traverse1 f) ts
+    {-# INLINE traverse1 #-}
 
 
 ------------------------------------------------------------------------------
