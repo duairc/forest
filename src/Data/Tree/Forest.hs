@@ -30,6 +30,7 @@ module Data.Tree.Forest
     , _Leaf
     , _Node
     , _Forest
+    , treeAsFree
 
     -- * Higher order traversals
     -- ** Trees
@@ -145,6 +146,14 @@ import           Data.Hashable (Hashable, hashWithSalt)
 import           Data.Profunctor (Choice, Profunctor, dimap, right')
 
 
+-- free ----------------------------------------------------------------------
+import           Control.Monad.Free (Free(..))
+
+
+-- comonad-transformers ------------------------------------------------------
+import           Control.Comonad.Trans.Env (EnvT(..))
+
+
 -- semigroupoids -------------------------------------------------------------
 import           Data.Functor.Alt (Alt, (<!>))
 import           Data.Functor.Apply (Apply, (<.>))
@@ -200,6 +209,21 @@ _Node = dimap from (either pure (fmap to)) . right'
     to = uncurry Node
 {-# INLINE _Node #-}
 
+
+------------------------------------------------------------------------------
+-- | This is an @Functor g => Iso' (Tree g s a) (Free (EnvT s g) a)@
+treeAsFree :: (Profunctor p, Functor f, Functor g)
+    => p (Free (EnvT s g) a) (f (Free (EnvT s g) a))
+    -> p (Tree g s a) (f (Tree g s a))
+treeAsFree = dimap to (fmap from)
+  where
+    to :: Functor g => Tree g s a -> Free (EnvT s g) a
+    to (Leaf a) = Pure a
+    to (Node s (Forest gTree)) = Free (EnvT s (fmap to gTree))
+
+    from :: Functor g => Free (EnvT s g) a -> Tree g s a
+    from (Pure a) = Leaf a
+    from (Free (EnvT s gTree)) = Node s (Forest (fmap from gTree))
 
 ------------------------------------------------------------------------------
 instance (NFData s, NFData a, NFData (f (Tree f s a))) =>
