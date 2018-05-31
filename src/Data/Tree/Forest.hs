@@ -650,7 +650,7 @@ instance Alt f => Semigroup (Forest f s a) where
 
 
 ------------------------------------------------------------------------------
-instance Alternative f => Monoid (Forest f s a) where
+instance (Alt f, Alternative f)=> Monoid (Forest f s a) where
     mempty = empty
     {-# INLINE mempty #-}
     mappend = (<|>)
