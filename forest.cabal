@@ -24,7 +24,7 @@ Library
     Data.Tree.Forest
 
   build-depends:
-    aeson >= 0.2 && < 1.4,
+    aeson >= 0.2 && < 2,
     base >= 4.2 && < 5,
     comonad >= 5.0 && < 6,
     deepseq >= 1.1 && < 2,
