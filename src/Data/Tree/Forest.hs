@@ -622,8 +622,10 @@ instance (Applicative f, Monad f, Traversable f) => Monad (Forest f s) where
       where
         runForest (Forest tt) = tt
     {-# INLINE (>>=) #-}
+#if !MIN_VERSION_base(4,12,0)
     fail = Forest . fail
     {-# INLINE fail #-}
+#endif
 
 
 #if __GLASGOW_HASKELL__ >= 800
